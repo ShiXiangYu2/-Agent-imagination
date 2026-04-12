@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent设计模式橙皮书</title>
+<style>
+/* 书籍级PDF — 共享CSS模板
+   基于焦橙主题设计系统
+
+   ⚠️ 边距规则（重要！避免重复出血）：
+   - @page margin：只控制上下边距（18mm），左右设为0
+   - .content padding：控制左右边距（55px）
+   - 不要在@page和HTML元素中同时设置左右边距，否则会叠加导致内容区过窄
+   - 封面(.cover)和尾页(.back-page)有独立的@page规则（margin:0），自行通过padding控制
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #FFFFFF;
+  --surface: #FFFFFF;
+  --text: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --accent: #C2410C;
+  --accent-light: #FFF7ED;
+  --border: #E5E5E5;
+  --code-bg: #F5F5F0;
+  --tip-bg: #F0FDF4;
+  --tip-border: #22C55E;
+  --warn-bg: #FEF2F2;
+  --warn-border: #EF4444;
+  --section-line: #C2410C;
+  --highlight: #FFFBEB;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+@page {
+  size: A4;
+  margin: 18mm 0;  /* 左右边距由.content padding控制，这里只设上下 */
+}
+
+@page cover-page {
+  size: A4;
+  margin: 0;
+}
+
+@page back-page {
+  size: A4;
+  margin: 0;
+}
+
+body {
+  font-family: 'Noto Sans SC', 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.8;
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* ==================== Cover ==================== */
+
+.cover {
+  page: cover-page;
+  page-break-after: always;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 55px;
+  background: linear-gradient(135deg, #FFFBF5 0%, #FFF5EB 25%, #FFFFFF 100%);
+  position: relative;
+}
+
+.cover::before {
+  content: '';
+  position: absolute;
+  top: 40px;
+  left: 50px;
+  width: 80px;
+  height: 5px;
+  background: var(--accent);
+  border-radius: 3px;
+}
+
+.cover::after {
+  content: '';
+  position: absolute;
+  top: 40px;
+  left: 140px;
+  width: 30px;
+  height: 5px;
+  background: #FDBA74;
+  border-radius: 3px;
+}
+
+.cover-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 3px;
+  margin-bottom: 24px;
+  font-family: 'Inter', sans-serif;
+}
+
+.cover h1 {
+  font-size: 36pt;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -1px;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.cover h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.cover-subtitle {
+  font-size: 14pt;
+  font-weight: 300;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  max-width: 520px;
+  line-height: 1.6;
+}
+
+.cover-en {
+  font-family: 'Inter', sans-serif;
+  font-size: 11pt;
+  color: #9CA3AF;
+  font-weight: 400;
+  font-style: italic;
+  margin-bottom: 50px;
+}
+
+.cover-meta {
+  font-size: 9.5pt;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  line-height: 2;
+}
+
+.cover-meta strong { color: var(--text); font-weight: 600; }
+
+.cover-author {
+  margin-top: 20px;
+  font-size: 10pt;
+  color: var(--text-secondary);
+  line-height: 2;
+}
+
+.cover-author strong {
+  font-size: 12pt;
+  color: var(--text);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.cover-author a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.cover-disclaimer {
+  margin-top: 14px;
+  font-size: 8.5pt;
+  color: #9CA3AF;
+  line-height: 1.8;
+}
+
+.cover-exclusive {
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: var(--accent-light);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 6px 6px 0;
+  font-size: 9pt;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+/* ==================== TOC ==================== */
+
+.toc {
+  page-break-after: always;
+  padding: 10px 55px 0;
+}
+
+.toc h2 {
+  font-size: 22pt;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.toc-sub {
+  font-size: 10pt;
+  color: var(--text-secondary);
+  margin-bottom: 30px;
+}
+
+.toc-group {
+  margin-top: 20px;
+  margin-bottom: 6px;
+  font-size: 10pt;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.toc-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px dotted #D4D4D4;
+  font-size: 10.5pt;
+}
+
+.toc-item .num {
+  color: var(--accent);
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  margin-right: 10px;
+  min-width: 24px;
+  font-size: 10pt;
+}
+
+.toc-item .title { font-weight: 500; }
+
+.toc-item .en {
+  font-family: 'Inter', sans-serif;
+  font-size: 9pt;
+  color: #9CA3AF;
+  margin-left: 8px;
+  font-weight: 400;
+}
+
+.toc-item a {
+  color: inherit;
+  text-decoration: none;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* ==================== Content ==================== */
+
+.content {
+  padding: 0 55px;
+}
+
+h2.section-title {
+  font-size: 20pt;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 45px;
+  margin-bottom: 6px;
+  padding-top: 18px;
+  border-top: 3px solid var(--section-line);
+  page-break-after: avoid;
+}
+
+h2.section-title .num {
+  color: var(--accent);
+  font-family: 'Inter', sans-serif;
+  margin-right: 6px;
+  font-size: 18pt;
+}
+
+.section-en {
+  font-family: 'Inter', sans-serif;
+  font-size: 10pt;
+  color: #9CA3AF;
+  font-style: italic;
+  margin-bottom: 6px;
+}
+
+.section-intro {
+  font-size: 11.5pt;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  font-weight: 300;
+}
+
+h3 {
+  font-size: 13pt;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 24px;
+  margin-bottom: 8px;
+  page-break-after: avoid;
+}
+
+h3 .en {
+  font-family: 'Inter', sans-serif;
+  font-size: 9.5pt;
+  color: #9CA3AF;
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+h4 {
+  font-size: 11pt;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 16px;
+  margin-bottom: 6px;
+}
+
+p { margin-bottom: 10px; }
+
+/* ==================== Components ==================== */
+
+/* Tip */
+.tip {
+  background: var(--tip-bg);
+  border-left: 4px solid var(--tip-border);
+  padding: 12px 16px;
+  margin: 14px 0;
+  border-radius: 0 8px 8px 0;
+  font-size: 10pt;
+  page-break-inside: avoid;
+}
+
+.tip::before {
+  content: '核心建议';
+  display: block;
+  font-weight: 700;
+  font-size: 8.5pt;
+  letter-spacing: 0.5px;
+  color: #16A34A;
+  margin-bottom: 3px;
+}
+
+/* Warning */
+.warning {
+  background: var(--warn-bg);
+  border-left: 4px solid var(--warn-border);
+  padding: 12px 16px;
+  margin: 14px 0;
+  border-radius: 0 8px 8px 0;
+  font-size: 10pt;
+  page-break-inside: avoid;
+}
+
+.warning::before {
+  content: '注意';
+  display: block;
+  font-weight: 700;
+  font-size: 8.5pt;
+  letter-spacing: 0.5px;
+  color: #DC2626;
+  margin-bottom: 3px;
+}
+
+/* Callout */
+.callout {
+  background: var(--highlight);
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 14px 0;
+  font-size: 10pt;
+  page-break-inside: avoid;
+}
+
+.callout strong { color: var(--accent); }
+
+/* Code */
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9pt;
+  line-height: 1.6;
+  margin: 10px 0 14px;
+  page-break-inside: avoid;
+}
+
+code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9pt;
+  background: var(--code-bg);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+pre code { background: none; padding: 0; }
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 9.5pt;
+  page-break-inside: avoid;
+}
+
+thead th {
+  background: #F5F5F0;
+  font-weight: 600;
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 2px solid var(--border);
+  font-size: 8.5pt;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+tr:last-child td { border-bottom: none; }
+
+/* Steps */
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 14px 0;
+  page-break-inside: avoid;
+}
+
+.step-num {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  margin-top: 2px;
+}
+
+.step-content { flex: 1; }
+.step-content h4 {
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 5px;
+  font-size: 10.5pt;
+  line-height: 1.6;
+}
+
+/* Lists */
+ul, ol { margin: 6px 0 12px 22px; }
+li { margin-bottom: 3px; }
+
+em { font-style: italic; color: var(--text-secondary); }
+strong { font-weight: 600; }
+
+.page-break { page-break-before: always; }
+
+/* File tree */
+.file-tree {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9pt;
+  line-height: 1.7;
+  margin: 10px 0 14px;
+  page-break-inside: avoid;
+}
+
+/* Flow diagram */
+.flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.flow-item {
+  background: white;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 10pt;
+  color: var(--accent);
+}
+
+.flow-arrow {
+  color: #D1D5DB;
+  font-size: 18pt;
+  font-weight: 300;
+}
+
+/* Compare box */
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 14px 0;
+  page-break-inside: avoid;
+}
+
+.compare-good, .compare-bad {
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 9.5pt;
+}
+
+.compare-good {
+  background: var(--tip-bg);
+  border: 1px solid #BBF7D0;
+}
+
+.compare-good::before {
+  content: '推荐';
+  display: block;
+  font-weight: 700;
+  font-size: 8.5pt;
+  color: #16A34A;
+  margin-bottom: 4px;
+}
+
+.compare-bad {
+  background: var(--warn-bg);
+  border: 1px solid #FECACA;
+}
+
+.compare-bad::before {
+  content: '不推荐';
+  display: block;
+  font-weight: 700;
+  font-size: 8.5pt;
+  color: #DC2626;
+  margin-bottom: 4px;
+}
+
+.compare-good pre, .compare-bad pre {
+  margin: 6px 0 0;
+  font-size: 8.5pt;
+}
+
+/* Diagram placeholder */
+.diagram {
+  background: #F9FAFB;
+  border: 2px dashed #D1D5DB;
+  border-radius: 12px;
+  padding: 30px;
+  margin: 20px 0;
+  text-align: center;
+  color: #9CA3AF;
+  font-size: 9pt;
+  page-break-inside: avoid;
+}
+
+.diagram .label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-size: 10pt;
+}
+
+/* ==================== Footer ==================== */
+
+.footer-note {
+  margin-top: 50px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 8.5pt;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.8;
+}
+
+/* ==================== Back page ==================== */
+
+.back-page {
+  page: back-page;
+  page-break-before: always;
+  page-break-inside: avoid;
+  page-break-after: avoid;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 50px 55px 40px;
+  background: linear-gradient(135deg, #FFFBF5 0%, #FFF5EB 25%, #FFFFFF 100%);
+  text-align: center;
+}
+
+.back-page-title {
+  font-size: 22pt;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.back-page-subtitle {
+  font-size: 12pt;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+}
+
+.back-page-qr-wrapper {
+  background: white;
+  padding: 16px;
+  border-radius: 18px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+  margin-bottom: 24px;
+  display: inline-block;
+}
+
+.back-page-qr {
+  width: 220px;
+  height: auto;
+  border-radius: 10px;
+  display: block;
+}
+
+.back-page-info {
+  font-size: 9.5pt;
+  color: var(--text-secondary);
+  line-height: 1.9;
+  max-width: 400px;
+}
+
+.back-page-info strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.back-page-link {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 9px 24px;
+  background: var(--accent);
+  color: white;
+  font-size: 10pt;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.back-page-social {
+  margin-top: 18px;
+  font-size: 9.5pt;
+  color: var(--text-secondary);
+  line-height: 2;
+}
+
+.back-page-social a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.back-page-social .social-sep {
+  margin: 0 8px;
+  color: #D1D5DB;
+}
+
+.back-page-footer {
+  margin-top: 28px;
+  font-size: 8.5pt;
+  color: #B0B0B0;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ===== 00-cover.html ===== -->
+<div class="cover">
+  <div class="cover-badge">REFERENCE GUIDE</div>
+  <h1><em>Agent</em><br>设计模式橙皮书</h1>
+  <p class="cover-subtitle">从GoF到Agent时代，跨越软件工程的一个世纪<br>系统掌握21个核心设计模式与6大架构维度</p>
+  <p class="cover-en">Agent Design Patterns — From Structure to Intelligence</p>
+  <div class="cover-meta">
+    <strong>信息来源：</strong>《Agent设计模式》黄佳著 · Datawhale共学资料<br>
+    <strong>文档版本：</strong>v1.0.0<br>
+    <strong>发布时间：</strong>2026-04-11 (build #0)<br>
+    <strong>涵盖内容：</strong>感知模式 · 记忆模式 · 推理模式 · 行动模式 · 反思模式 · 协作模式
+  </div>
+  <div class="cover-author">
+    <strong>蒲公英</strong><br>
+    公众号「AI编程蒲公英」· B站「AI编程程序猿-蒲公英」
+  </div>
+  <div class="cover-exclusive">
+    知识星球「AI编程：从入门到精通」专属内容
+  </div>
+  <div class="cover-disclaimer">
+    本文档在 Claude Code 辅助下整理编写，内容基于《Agent设计模式》书籍及Datawhale共学资料。
+  </div>
+</div>
+
+<!-- ===== 01-toc.html ===== -->
+<div class="toc">
+  <div style="border-top: 3px solid var(--accent); margin-bottom: 20px;"></div>
+  <h2>目录</h2>
+  <div class="toc-sub">CONTENTS</div>
+
+  <div class="toc-group">Part 1: 从结构到智能</div>
+  <div class="toc-item">
+    <a href="#part1"><span class="num">§01</span><span class="title">设计模式的世纪旅程</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part1-1"><span class="num">§01.1</span><span class="title">GoF的贡献：秩序的承诺</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part1-2"><span class="num">§01.2</span><span class="title">黄金时代：设计模式的工业化</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part1-3"><span class="num">§01.3</span><span class="title">诸神的黄昏：确定性的崩塌</span></a>
+  </div>
+
+  <div class="toc-group">Part 2: Agent的本质</div>
+  <div class="toc-item">
+    <a href="#part2"><span class="num">§02</span><span class="title">从工具到伙伴</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part2-1"><span class="num">§02.1</span><span class="title">从命令到对话</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part2-2"><span class="num">§02.2</span><span class="title">意图的理解</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part2-3"><span class="num">§02.3</span><span class="title">记忆与身份</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part2-4"><span class="num">§02.4</span><span class="title">上下文工程</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part2-5"><span class="num">§02.5</span><span class="title">任务分解与工具</span></a>
+  </div>
+
+  <div class="toc-group">Part 3: 心智架构</div>
+  <div class="toc-item">
+    <a href="#part3"><span class="num">§03</span><span class="title">感知—推理—行动循环</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part3-1"><span class="num">§03.1</span><span class="title">感知：主动的过滤器</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part3-2"><span class="num">§03.2</span><span class="title">推理：快思考与慢思考</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part3-3"><span class="num">§03.3</span><span class="title">行动：改变与反馈</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part3-4"><span class="num">§03.4</span><span class="title">OODA的软件化</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part3-5"><span class="num">§03.5</span><span class="title">具身认知</span></a>
+  </div>
+
+  <div class="toc-group">Part 4: 多Agent协作</div>
+  <div class="toc-item">
+    <a href="#part4"><span class="num">§04</span><span class="title">协作的语法</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part4-1"><span class="num">§04.1</span><span class="title">认知负荷的分流</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part4-2"><span class="num">§04.2</span><span class="title">角色、协议与拓扑</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part4-3"><span class="num">§04.3</span><span class="title">编排器与冲突处理</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part4-4"><span class="num">§04.4</span><span class="title">涌现与自组织</span></a>
+  </div>
+
+  <div class="toc-group">Part 5: 人机协作原则</div>
+  <div class="toc-item">
+    <a href="#part5"><span class="num">§05</span><span class="title">新的契约</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part5-1"><span class="num">§05.1</span><span class="title">互补而非替代</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part5-2"><span class="num">§05.2</span><span class="title">透明与可解释</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part5-3"><span class="num">§05.3</span><span class="title">人类保持主导权</span></a>
+  </div>
+  <div class="toc-item">
+    <a href="#part5-4"><span class="num">§05.4</span><span class="title">共同学习与成长</span></a>
+  </div>
+
+  <div class="toc-group">附录</div>
+  <div class="toc-item">
+    <a href="#appendix"><span class="num">§A</span><span class="title">21个核心设计模式速查</span></a>
+  </div>
+</div>
+
+<!-- ===== part1-chapter1.html ===== -->
+<div class="content">
+
+<h2 class="section-title page-break" id="part1"><span class="num">§01</span> 从结构到智能：设计模式的世纪旅程</h2>
+<p class="section-en">From Structure to Intelligence: A Century Journey of Design Patterns</p>
+<p class="section-intro">设计模式并未消亡，而是在进化。软件工程未曾终结，而是在重生。从GoF的23种模式到Agent时代的21种新模式，我们将跨越软件工程的一个世纪，见证从机械世界观到有机世界观的范式跃迁。</p>
+
+<div class="callout"><strong>核心命题：</strong>当我们把LLM引入软件架构的核心时，软件不再仅仅是对人类指令的<strong>响应(response)</strong>，而是开始展现出<strong>意图和自主性(agency)</strong>。</div>
+
+<h3 id="part1-1">§01.1 GoF的贡献：秩序的承诺</h3>
+
+<p>1994年，软件工程正深陷<strong>"软件危机"</strong>。硬件能力呈指数级增长，软件复杂度却呈爆炸式膨胀——项目延期、预算超支、需求变更令开发者苦不堪言。就在混沌之中，GoF（Gang of Four，四人帮）带来了秩序的种子。</p>
+
+<p>从建筑学家<strong>克里斯托弗·亚历山大</strong>的著作中，GoF获得了核心灵感：</p>
+
+<div class="tip">"模式是反复出现的情境中，经过验证的、可复用的解决方案。"</div>
+
+<p>GoF将23种模式按<strong>"意图"</strong>而非"实现"进行分类，形成了三种思维方式：</p>
+
+<table>
+<tr><th>类型</th><th>关注点</th><th>代表模式</th></tr>
+<tr><td>创建型模式</td><td>如何创建对象</td><td>单例、工厂、建造者、原型</td></tr>
+<tr><td>结构型模式</td><td>如何组合类与对象</td><td>适配器、装饰器、代理、外观、桥接、组合、享元</td></tr>
+<tr><td>行为型模式</td><td>如何分配职责、定义协作</td><td>观察者、策略、命令、模板方法、迭代器、状态、责任链等</td></tr>
+</table>
+
+<h4>"模式病"的警示</h4>
+
+<p>然而，模式的滥用导致了<strong>"模式病"（Patternitis）</strong>——为展示模式而模式，让简单的需求背上沉重的架构负担。一个Hello World程序被强行套用5种设计模式，这种过度设计的陷阱值得警惕。</p>
+
+<h3 id="part1-2">§01.2 黄金时代：设计模式的工业化（1995-2005）</h3>
+
+<p>这十年，软件从精英手工制品变成工业化流水线产品。<strong>Java、C++、C#</strong>三驾马车并驾齐驱，四大架构革命深刻影响了软件工程：</p>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content">
+    <h4>MVC分层架构</h4>
+    <p>Model-View-Controller的分层思想，实现了关注点分离，让界面、业务、数据各司其职。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content">
+    <h4>依赖注入与控制反转（IoC/DI）</h4>
+    <p>"Don't call us, we'll call you"（好莱坞原则）。依赖从外部注入，而非内部创建，彻底解耦组件间的硬编码依赖。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">
+    <h4>行为可配置（策略模式）</h4>
+    <p>告别if-else地狱，通过运行时动态配置策略，让系统行为可插拔、可扩展。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">4</div>
+  <div class="step-content">
+    <h4>UML的标准化</h4>
+    <p>统一建模语言成为软件世界的"通用语言"，让架构师能在白板前进行精确交流。</p>
+  </div>
+</div>
+
+<h3 id="part1-3">§01.3 诸神的黄昏：当确定性遭遇不确定性</h3>
+
+<p>然而，这一切辉煌的基石，建立在两个关键假设上：</p>
+
+<ol>
+<li>需求是相对稳定的，可以在项目初期定义完整需求</li>
+<li>环境是可控的，服务器数量、网络拓扑是固定的</li>
+</ol>
+
+<div class="warning">这两个假设，在2008年崩塌了。</div>
+
+<p><strong>2008年夏天，Twitter崩溃事件</strong>——奥巴马演讲期间流量激增，Twitter架构不堪重负。这一事件标志着：在Web规模的世界中，<strong>不确定性不是例外，而是常态</strong>。</p>
+
+<h4>不确定性的三重奏</h4>
+
+<table>
+<tr><th>类型</th><th>表现</th><th>示例</th></tr>
+<tr><td><strong>规模的不确定性</strong></td><td>用户数量不可预测，流量峰值难以预估</td><td>Twitter崩溃、电商秒杀峰值</td></tr>
+<tr><td><strong>行为的不确定性</strong><td>用户行为模式复杂，需求持续演化</td><td>从简单博客到实时社交平台</td></tr>
+<tr><td><strong>环境的不确定性</strong></td><td>外部依赖随时可能失效，网络分区、硬件故障常态化</td><td>微服务调用链中任意节点都可能成为瓶颈</td></tr>
+</table>
+
+<h4>机械世界 vs 有机世界</h4>
+
+<div class="compare">
+  <div class="compare-good">
+    <strong>有机世界观（Agent时代）</strong><br>
+    软件是生态系统，各部分相互适应、共同演化<br>
+    故障是常态，系统具备自愈能力<br>
+    变化是常态，系统持续学习<br>
+    追求适应与韧性
+  </div>
+  <div class="compare-bad">
+    <strong>机械世界观（GoF时代）</strong><br>
+    软件是精密仪器，每个齿轮位置精确固定<br>
+    故障意味着设计缺陷<br>
+    变化需要重新设计<br>
+    追求预测与控制
+  </div>
+</div>
+
+<div class="tip">
+<strong>核心洞见：</strong>设计模式并未消亡，而是在进化。从GoF的23种模式到Agent时代的21种新模式，软件设计的核心关注点从"如何组织代码"转向了"如何培育智能"。
+</div>
+
+</div>
+
+<!-- ===== part2-chapter2.html ===== -->
+<div class="content">
+
+<h2 class="section-title page-break" id="part2"><span class="num">§02</span> Agent的本质：从工具到伙伴</h2>
+<p class="section-en">The Nature of Agent: From Tool to Partner</p>
+<p class="section-intro">Agent的三个根本性转变：不再是被动的工具，而是主动感知环境的观察者；不再是无状态的函数，而是拥有记忆与身份的实体；不再是孤立的计算节点，而是能够协作的社会成员。</p>
+
+<div class="callout"><strong>核心命题：</strong>"我们不再是在<strong>设计(design)</strong>一个系统，而是在<strong>培育(cultivate)</strong>一个物种。"</div>
+
+<h3 id="part2-1">§02.1 从命令到对话：交互原语的升维</h3>
+
+<p>交互方式经历了从CLI到GUI再到Agent时代的演进：</p>
+
+<table>
+<tr><th>时代</th><th>交互原语</th><th>特点</th></tr>
+<tr><td>CLI时代</td><td>命令</td><td>精确但门槛高</td></tr>
+<tr><td>GUI时代</td><td>点击</td><td>直观但操作繁琐</td></tr>
+<tr><td>Agent时代</td><td><strong>对话/意图</strong></td><td>自然、灵活、有上下文</td></tr>
+</table>
+
+<p>对话的本质不仅是自然语言的交互界面，更重要的是，它能够实现<strong>意图理解</strong>、<strong>上下文保持</strong>以及<strong>任务分解</strong>。</p>
+
+<h3 id="part2-2">§02.2 意图的理解：模糊与精确的桥梁</h3>
+
+<p>Agent的核心能力是充当<strong>"模糊翻译器"</strong>，搭建起"人类模糊的自然语言"与"机器精确的API调用"之间的桥梁。</p>
+
+<h4>意图理解的四个层次</h4>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content">
+    <h4>语义理解（Semantic Understanding）</h4>
+    <p>提取动作、对象、范围、限制条件。例如："整理日志"需要澄清是分析、压缩还是归档。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content">
+    <h4>目的识别（Goal Recognition）</h4>
+    <p>不仅理解"你说什么"，更理解"你想实现什么"——从"显性指令"推断"隐性目标"。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">
+    <h4>上下文关联（Context Association）</h4>
+    <p>整合用户的代码结构、当前文件目录、用户偏好（如yield vs 列表推导式）、安全约束、历史任务上下文。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">4</div>
+  <div class="step-content">
+    <h4>风险评估与澄清（Risk Assessment & Clarification）</h4>
+    <p>在意图模糊时主动提问，避免贸然执行导致的误操作。澄清行为正是Agent"可靠性"的重要体现。</p>
+  </div>
+</div>
+
+<h3 id="part2-3">§02.3 记忆与身份：Agent的自我连续性</h3>
+
+<p>工具与Agent的本质区别在于：</p>
+
+<div class="compare">
+  <div class="compare-good">
+    <strong>Agent（伙伴）</strong><br>
+    像伙伴一样拥有记忆，延续"身份"<br>
+    知道你是谁，记得你们的对话历史
+  </div>
+  <div class="compare-bad">
+    <strong>工具（用完即走）</strong><br>
+    每次打开都是空白白板<br>
+    没有记忆，没有上下文
+  </div>
+</div>
+
+<div class="warning">
+<strong>记忆的幻觉与真实：</strong>LLM本身是无状态的。Agent所谓的"记忆"，实际上是通过<strong>上下文工程</strong>构建出的一种"幻觉"。
+</div>
+
+<h4>两层记忆体系</h4>
+
+<table>
+<tr><th>记忆类型</th><th>作用</th><th>技术实现</th></tr>
+<tr><td><strong>短期记忆</strong></td><td>当前会话的上下文一致性</td><td>上下文窗口、提示工程</td></tr>
+<tr><td><strong>长期记忆</strong></td><td>跨会话的偏好与经验</td><td>向量数据库、RAG</td></tr>
+</table>
+
+<h4>身份：System Prompt的灵魂</h4>
+
+<div class="tip">
+记忆 = <strong>连续性</strong>（知道你是谁）<br>
+身份 = <strong>稳定性</strong>（知道自己是谁）
+</div>
+
+<p>身份（Identity）远不止于人设，它是一套<strong>价值观与行为准则</strong>的集合，决定了Agent在面临两难选择时的倾向：</p>
+
+<ul>
+<li>表达风格（正式 vs 轻松）</li>
+<li>专业领域定位（全栈 vs 专精）</li>
+<li>价值观倾向（保守操作 vs 注重安全）</li>
+<li>行动策略偏好（先检查，再执行）</li>
+</ul>
+
+<h3 id="part2-4">§02.4 上下文工程：理解世界状态</h3>
+
+<div class="callout">
+<strong>核心命题：</strong>"对Agent而言，<strong>上下文就是它的整个世界</strong>。"
+</div>
+
+<p>上下文工程的本质是为Agent搭建<strong>数字感官</strong>。三大核心来源：</p>
+
+<table>
+<tr><th>来源</th><th>内容</th></tr>
+<tr><td><strong>用户上下文</strong></td><td>开发风格、历史偏好、常用技术栈、当前工作内容</td></tr>
+<tr><td><strong>环境上下文</strong></td><td>文件结构、代码库内容、当前分支、日志、错误栈、系统资源状态</td></tr>
+<tr><td><strong>任务上下文</strong></td><td>前置任务结果、当前子任务进度、依赖项加载状态、历史尝试记录</td></tr>
+</table>
+
+<h4>上下文工程的黄金法则</h4>
+
+<div class="compare">
+  <div class="compare-good">
+    ✅ 而是"给Agent看什么"（信息选择）<br>
+    ✅ 而是"喂结构"——将关键信息以合适的结构提供给模型
+  </div>
+  <div class="compare-bad">
+    ❌ 不是"怎么说"（Prompt技巧）<br>
+    ❌ 不是简单的"喂信息"
+  </div>
+</div>
+
+<h3 id="part2-5">§02.5 任务分解与工具</h3>
+
+<h4>任务分解：把"目标"变为"计划"</h4>
+
+<p>衡量Agent智能化水平的关键在于它能否将"目标"转化为具体"步骤"：</p>
+
+<div class="flow">
+  <div class="flow-item">目标</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-item">规划(Planning)</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-item">映射(Mapping)</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-item">行动</div>
+</div>
+
+<h4>工具、技能与MCP协议</h4>
+
+<p>工具使用（Tool Use）是Agent从"被动的观察者"转变为"主动的参与者"的关键。</p>
+
+<p>在Agent架构中，工具必须附带<strong>语义(Semantics)</strong>：</p>
+
+<ol>
+<li><strong>功能描述：</strong>写给模型看的"说明书"，说明工具能力和适用场景</li>
+<li><strong>参数约束：</strong>写给程序的"契约"，明确参数结构与类型</li>
+<li><strong>副作用声明：</strong>写给安全模块的"警示"，标明操作的潜在影响</li>
+</ol>
+
+<div class="tip">
+<strong>MCP（Model Context Protocol）：</strong>2024年兴起的模型上下文协议，致力于将"工具描述"标准化，使Agent能够像<strong>插拔USB设备</strong>一样，灵活挂载各类SaaS与外部能力。
+</div>
+
+<h4>技能：企业的数字本体</h4>
+
+<p><strong>技能 = 工具 + 领域知识 + 标准作业程序</strong></p>
+
+<table>
+<tr><th>概念</th><th>定义</th><th>示例</th></tr>
+<tr><td><strong>工具(Tool)</strong></td><td>通用且原子化的操作</td><td>执行SQL、发送HTTP请求、读写文件</td></tr>
+<tr><td><strong>技能(Skill)</strong></td><td>面向业务场景、经过封装的能力单元</td><td>生成月度财报、执行代码审查、处理客户退款</td></tr>
+</table>
+
+<h4>ReAct：核心循环</h4>
+
+<p>DeepMind提出的ReAct范式已成为现代Agent行动的标准心智模型：</p>
+
+<div class="tip">
+<strong>ReAct循环：</strong><br>
+思考(Thought) → 行动(Action) → 观察(Observation)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↑&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└────────────────────────────────────┘
+</div>
+
+<p>这种"行动增强推理"(Action-Augmented Reasoning)使Agent具备了<strong>试错和自我修正</strong>的能力。</p>
+
+</div>
+
+<!-- ===== part3-chapter3.html ===== -->
+<div class="content">
+
+<h2 class="section-title page-break" id="part3"><span class="num">§03</span> 心智架构：感知—推理—行动循环</h2>
+<p class="section-en">Mental Architecture: The Perception-Reasoning-Action Loop</p>
+<p class="section-intro">Agent并非一个"函数"，而是一个"进程"——运行在一个while(alive)的无限循环之中。本章深入剖析Agent的"大脑"内部，揭示它是如何思考、如何感知世界、如何行动的。</p>
+
+<div class="callout"><strong>核心命题：</strong>"生命并非静态的存在，而是动态的流转；智能亦如此，它在与环境的不断交互循环中得以体现与发展。"</div>
+
+<h3 id="part3-1">§03.1 感知：主动的过滤器</h3>
+
+<p>传统程序被动接收输入，而Agent主动选择、解读并赋予意义。</p>
+
+<h4>感知的三个关键机制</h4>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content">
+    <h4>注意力（Attention）</h4>
+    <p>第一过滤层——选择相关信息。感知的本质不是"接收"，而是"过滤"。现代多模态模型能够判断"哪些信息与任务目标相关"，忽略99%的HTML标签，仅聚焦于网页正文内容。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content">
+    <h4>预测（Prediction）</h4>
+    <p>带着期望去理解。Agent会基于历史对话、用户偏好和任务背景构建"预测模型"。当现实与预测发生偏离时，便会产生"惊奇"(Surprise)——而这往往预示着新的价值、新的问题或新的矛盾。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">
+    <h4>语义化（Semantic）</h4>
+    <p>从"是什么"到"意味着什么"。现代多模态模型不再局限于识别物体，而是能够理解情境：识别"老人"→判断"老人可能需要帮助"；识别"文件"→意识到"可能是被用户遗忘的配置文件"。</p>
+  </div>
+</div>
+
+<h3 id="part3-2">§03.2 推理：快思考与慢思考</h3>
+
+<p>借鉴丹尼尔·卡尼曼的心理学模型，Agent的推理架构正向"双系统"演进：</p>
+
+<table>
+<tr><th>维度</th><th>System 1（快思考）</th><th>System 2（慢思考）</th></tr>
+<tr><td><strong>特征</strong></td><td>直觉式/快思考</td><td>逻辑式/慢思考</td></tr>
+<tr><td><strong>基础</strong></td><td>基于LLM的概率预测</td><td>通过思维链生成推理</td></tr>
+<tr><td><strong>性能</strong></td><td>响应迅速、计算成本低</td><td>响应较慢、逻辑严密</td></tr>
+<tr><td><strong>适用</strong></td><td>闲聊、简单问答</td><td>复杂规划、数学证明</td></tr>
+<tr><td><strong>风险</strong></td><td>容易产生幻觉</td><td>可靠性强</td></tr>
+</table>
+
+<h4>推理的四个关键层次</h4>
+
+<ol>
+<li><strong>情境理解（Situation Awareness）：</strong>"当前到底发生了什么？"将感知信息与长期记忆和短期上下文结合</li>
+<li><strong>经验检索（Memory Retrieval）：</strong>"我是否曾遇到过类似的问题？"依赖策略性记忆检索，避免重复犯错</li>
+<li><strong>心智模拟（Mental Simulation）：</strong>"如果这样做，会发生什么？"在"脑海中"进行预演</li>
+<li><strong>决策与信心（Decision and Confidence）：</strong>"哪个最符合目标？哪个最安全？"通过思考进行权衡</li>
+</ol>
+
+<h3 id="part3-3">§03.3 行动：改变与反馈</h3>
+
+<p>在传统软件中，输出意味着执行的<strong>结束</strong>。在Agent架构中，行动则标志着<strong>环境改变的开始</strong>。</p>
+
+<div class="compare">
+  <div class="compare-good">
+    <strong>Agent行动模式</strong><br>
+    执行命令 → 观察结果 → 若出错 → 调整参数 → 重试<br>
+    持续适应，永不停止
+  </div>
+  <div class="compare-bad">
+    <strong>传统程序</strong><br>
+    执行命令 → 结束<br>
+    程序崩溃即终止
+  </div>
+</div>
+
+<h4>行动的三个新维度</h4>
+
+<p><strong>1. 认识性行动：行动即实验</strong></p>
+
+<div class="tip">
+场景：Agent不确定某个API的参数格式是v1还是v2<br>
+推理："我不知道参数版本是v1还是v2，空想无益"<br>
+行动：主动发起一次试探性调用，使用v1作为参数<br>
+观察：收到错误响应"Invalid Parameter"<br>
+结论：v1被排除，因此参数格式应为v2
+</div>
+
+<p><strong>2. 目的性行动：副作用是必需的</strong></p>
+
+<p>Agent的本质正是<strong>主动制造可控的副作用</strong>，以改变现实或数字环境的状态：修改数据库（改变数据状态）、发送邮件（改变社会或协作状态）、部署代码（改变系统运行状态）。</p>
+
+<p><strong>3. 闭环行动：执行—验证—纠偏</strong></p>
+
+<p>行动不再是一个原子的"发射后不管"（Fire and Forget）操作，而是一个<strong>微型闭环结构</strong>。每次操作都应视为一次<strong>受控实验</strong>。</p>
+
+<h3 id="part3-4">§03.4 OODA的软件化</h3>
+
+<p>军事战略家约翰·博伊德（John Boyd）提出的OODA循环：</p>
+
+<div class="tip">
+<strong>OODA循环：</strong><br>
+Observe（观察）→ Orient（调整/定位）→ Decide（决策）→ Act（行动）→ Loop
+</div>
+
+<p>在Agent架构中，每一次OODA循环，Agent不仅执行任务，更在持续更新其内部的世界模型。每一次迭代都伴随着记忆的叠加，在时间轴上呈现出<strong>螺旋式的上升过程</strong>。</p>
+
+<h3 id="part3-5">§03.5 具身认知：身体塑造心智</h3>
+
+<div class="callout">
+<strong>核心观点：</strong>"心智不仅是大脑的产物，更是身体与外界环境互动的结果。"<br>
+即使在没有物理躯壳的Agent中，依然拥有某种形式的<strong>"数字身体"</strong>。
+</div>
+
+<h4>数字身体的三个约束</h4>
+
+<table>
+<tr><th>约束</th><th>类比</th><th>影响</th></tr>
+<tr><td><strong>上下文窗口</strong></td><td>模拟"视网膜"的信息容量限制</td><td>无法容纳无限历史信息，必须学会"遗忘"和"聚焦"</td></tr>
+<tr><td><strong>推理延迟</strong></td><td>模拟"神经传导速度"</td><td>在实时交互场景中被迫依赖"快思考"，离线任务可启用"慢思考"</td></tr>
+<tr><td><strong>Token成本</strong></td><td>模拟"代谢能量"</td><td>迫使Agent必须"节能"：能用搜索解决的问题，就不动用推理</td></tr>
+</table>
+
+<div class="tip">
+<strong>核心洞察：</strong>"限制正是创造力的源泉。"正是因为"身体"的限制，Agent才被迫发展出抽象、规划、启发式策略等智能行为。
+</div>
+
+<h4>从"做完"到"活着"</h4>
+
+<table>
+<tr><th>维度</th><th>传统软件</th><th>Agent</th></tr>
+<tr><td><strong>目标</strong></td><td>完成任务</td><td>持续适应</td></tr>
+<tr><td><strong>本质</strong></td><td>静态的代码</td><td>动态的进程</td></tr>
+<tr><td><strong>停止条件</strong></td><td>任务完成</td><td>循环终止即退化</td></tr>
+</table>
+
+<div class="warning">
+<strong>当循环成为"心智"：</strong>当感知、推理与行动的循环变得足够复杂、足够精细、足够自主时，我们便不再称其为"程序"，而称之为<strong>"心智"</strong>。
+</div>
+
+</div>
+
+<!-- ===== part4-chapter4.html ===== -->
+<div class="content">
+
+<h2 class="section-title page-break" id="part4"><span class="num">§04</span> 多Agent协作：协作的语法</h2>
+<p class="section-en">Multi-Agent Collaboration: The Syntax of Cooperation</p>
+<p class="section-intro">当我们将目光从单体Agent转向由多个Agent组成的网络时，软件架构的隐喻发生了又一次跃迁：从"机械装置"转变为"社会组织"。Agent是孤岛，协作才是大陆。</p>
+
+<div class="callout"><strong>核心命题：</strong>"多Agent的本质，是通过构建'组织架构'来弥补'单体Agent'在认知能力、专注度与可靠性上的局限。"</div>
+
+<h3 id="part4-1">§04.1 认知负荷的分流</h3>
+
+<p>为什么需要多Agent？答案在于<strong>"认知的边际效应递减"</strong>：</p>
+
+<table>
+<tr><th>问题</th><th>说明</th></tr>
+<tr><td><strong>上下文稀释效应</strong></td><td>System Prompt过长时，关键指令淹没在大量信息中</td></tr>
+<tr><td><strong>角色泛化陷阱</strong></td><td>既编写代码又写文档的通用Agent，往往表现平庸</td></tr>
+<tr><td><strong>角色冲突</strong></td><td>Creator需要高Temperature（发散），Reviewer需要低Temperature（收敛）</td></tr>
+</table>
+
+<h4>基础多Agent协作流程</h4>
+
+<div class="flow">
+  <div class="flow-item">研究</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-item">编码</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-item">评审</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-item">改进</div>
+</div>
+
+<p>多Agent通过分工，让专业化Agent专注于自己擅长的领域，形成高效协作的组织架构。</p>
+
+<h3 id="part4-2">§04.2 角色、协议与拓扑</h3>
+
+<p>要让一群Agent高效协作，必须从三个维度定义协作的"语法"：</p>
+
+<table>
+<tr><th>维度</th><th>核心概念</th><th>关键要素</th></tr>
+<tr><td><strong>角色（Role）</strong></td><td>SOP的人格化</td><td>关注点分离、专业化分工</td></tr>
+<tr><td><strong>协议（Protocol）</strong></td><td>数字巴别塔的通用语</td><td>自然语言思考、结构化语言交流</td></tr>
+<tr><td><strong>拓扑（Topology）</strong></td><td>权力的形状</td><td>流水线、层级式、联合式</td></tr>
+</table>
+
+<h4>典型角色定义</h4>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content">
+    <h4>产品经理Agent</h4>
+    <p>将模糊用户需求转化为清晰的PRD（产品需求文档）。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content">
+    <h4>架构师Agent</h4>
+    <p>基于PRD输出系统接口定义与技术方案。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">
+    <h4>工程师Agent</h4>
+    <p>依据接口定义生成可运行代码。</p>
+  </div>
+</div>
+
+<h4>三种典型协作拓扑</h4>
+
+<table>
+<tr><th>拓扑</th><th>结构</th><th>特点</th><th>适用场景</th></tr>
+<tr><td><strong>流水线（Chain）</strong></td><td>原料 → 加工 → 包装</td><td>信息单向流动，结构清晰，延迟低，效率高</td><td>流程明确、任务确定性高的场景</td></tr>
+<tr><td><strong>联合式（Mesh）</strong></td><td>圆桌会议式平等交互</td><td>通信开销大，但创意激发充分</td><td>创意生成、战略决策等开放性任务</td></tr>
+<tr><td><strong>层级式（Hierarchy）</strong></td><td>指挥官 → 侦察兵/炮兵</td><td>Manager统筹调度Worker，集中控制</td><td>复杂规划、任务分解与资源协调</td></tr>
+</table>
+
+<h3 id="part4-3">§04.3 编排器与冲突处理</h3>
+
+<h4>编排器的五大核心职责</h4>
+
+<p>当Agent数量增加时，系统需要一个"大脑"来维持秩序——这就是<strong>编排器（Orchestrator）</strong>：</p>
+
+<ol>
+<li><strong>调用顺序：</strong>协调各角色的职责边界，确保Agent在正确时机接手任务</li>
+<li><strong>数据流动：</strong>维护"共享记忆"，确保信息在角色间精准流转、无损耗继承</li>
+<li><strong>Agent选择：</strong>根据能力、负载、成本、可靠性选择最优执行者</li>
+<li><strong>条件分支与循环：</strong>处理非线性任务流程（测试未通过→返回修改→重新测试）</li>
+<li><strong>并行与资源管理：</strong>高效调度计算与认知资源，实现"多核CPU"般的协同计算</li>
+</ol>
+
+<h4>四种冲突处理机制</h4>
+
+<p>冲突是智能的必然副作用，也是复杂系统生命力的源泉。四种冲突处理机制：</p>
+
+<table>
+<tr><th>机制</th><th>适用场景</th><th>核心思想</th></tr>
+<tr><td><strong>投票机制</strong></td><td>单步决策、方案差异小、成本敏感</td><td>多数投票、加权投票、置信度投票</td></tr>
+<tr><td><strong>辩论机制</strong></td><td>复杂推理、模糊任务、解释性要求高</td><td>多Agent围绕问题展开辩论，相互质疑、反驳与完善</td></tr>
+<tr><td><strong>仲裁机制</strong></td><td>双方僵持不下时</td><td>引入"最终决策者"进行裁定（人类专家或更强的LLM）</td></tr>
+<tr><td><strong>共识机制</strong></td><td>最复杂、最贴近自然界的模式</td><td>提出提案→收集反馈→修订提案→再次提出，循环往复</td></tr>
+</table>
+
+<div class="tip">
+<strong>辩论机制的优势：</strong>Agent会主动暴露其推理链，谬误与认知偏差更容易被识别和纠正。DeepMind研究表明，两个Agent辩论后由第三方总结，结果准确性显著优于单一Agent的自我反思。
+</div>
+
+<h3 id="part4-4">§04.4 涌现与自组织</h3>
+
+<h4>涌现现象的底层机制</h4>
+
+<p>为何简单Agent组合能展现超越个体的智能？</p>
+
+<ol>
+<li><strong>对抗催生质量：</strong>幻觉在内部逻辑上是自洽的，个体难以自行察觉。对手(Opponent)带有批判性视角，能迅速识别逻辑漏洞。</li>
+<li><strong>异构催生全能：</strong>组合具有不同专长的模型，系统可实现能力互补——GPT-4负责长文本处理、Claude 3负责文档解析、Llama 3专注于生成SQL查询。</li>
+</ol>
+
+<h4>自组织系统的核心特征</h4>
+
+<table>
+<tr><th>特征</th><th>描述</th></tr>
+<tr><td><strong>无中心(Decentralized)</strong></td><td>没有管理者、调度者或中央指挥者，每个Agent自主评估任务、独立决策</td></tr>
+<tr><td><strong>自主分工</strong></td><td>任务由Agent主动选取，团队自行发起、协商组建，类似自由市场：供需驱动、能力匹配、自愿协作</td></tr>
+<tr><td><strong>动态拓扑</strong></td><td>系统结构非静态，根据任务流动态精简或扩展，瓶颈时精简规模，冲突时协商形成新的合作规则</td></tr>
+<tr><td><strong>基于信誉的进化</strong></td><td>类似GitHub星标、StackOverflow声望的信用分机制，表现优异的Agent获得更高信誉，优先获取任务分配</td></tr>
+</table>
+
+<h4>从"建筑师"到"园丁"</h4>
+
+<div class="compare">
+  <div class="compare-good">
+    <strong>数字园丁（Agent时代）</strong><br>
+    播种：设定初始条件<br>
+    施肥：提供养分（RAG、API工具）<br>
+    修剪：设定边界（伦理准则）<br>
+    等待：静待涌现
+  </div>
+  <div class="compare-bad">
+    <strong>建筑师（传统软件工程）</strong><br>
+    设计决定一切<br>
+    自上而下规划每个模块<br>
+    试图拧紧每一颗螺丝
+  </div>
+</div>
+
+<h4>MCP vs A2A：双轨制协议</h4>
+
+<table>
+<tr><th>协议</th><th>全称</th><th>作用</th><th>解决的问题</th></tr>
+<tr><td><strong>MCP</strong></td><td>Model Context Protocol</td><td>连接世界的"手"</td><td>大脑如何指挥手脚？</td></tr>
+<tr><td><strong>A2A</strong></td><td>Agent-to-Agent</td><td>连接思想的"网络"</td><td>大脑如何与大脑协作？</td></tr>
+</table>
+
+<div class="tip">
+<strong>MCP</strong>让Agent能够<strong>"操作世界"</strong>，<strong>A2A</strong>让Agent能够<strong>"彼此协作"</strong>。
+</div>
+
+</div>
+
+<!-- ===== part5-chapter5.html ===== -->
+<div class="content">
+
+<h2 class="section-title page-break" id="part5"><span class="num">§05</span> 人机协作设计原则：新的契约</h2>
+<p class="section-en">Human-AI Collaboration: The New Contract</p>
+<p class="section-intro">当Agent具备自主行动能力之后，人类与AI的关系将不再局限于调用API，而是转向设计协作模式。如果我们创造了类人的智能，人类该如何与它共存？</p>
+
+<div class="callout">
+<strong>核心命题：</strong>"当人机契约从'控制'（Control）转向'对齐'（Alignment），人类需要从'指令发出者'转变为'协议制定者'。"
+</div>
+
+<h3 id="part5-1">§05.1 互补而非替代</h3>
+
+<p>人类与AI并非竞争关系，而是基于<strong>角色分工（Role Partitioning）</strong>的协作关系。</p>
+
+<div class="tip">
+<strong>黄金法则：</strong><br>
+让人类负责<strong>决策（decision）</strong><br>
+让AI负责<strong>选择（choice）</strong><br>
+让系统负责<strong>执行（execution）</strong>
+</div>
+
+<h4>四步协作流程</h4>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content">
+    <h4>[人类] 输入最小人类意图单元（MHIU）</h4>
+    <p>人类以自然语言表达意图，无需关注实现细节。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content">
+    <h4>[Agent] 规划器生成执行计划（DAG）</h4>
+    <p>Agent将意图分解为可执行的子任务，形成有向无环图。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">
+    <h4>[Agent] Worker Agent并行执行任务</h4>
+    <p>各专业化Agent协同工作，完成各自子任务。</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">4</div>
+  <div class="step-content">
+    <h4>[人类] 通过HITL机制进行价值判断与最终决策</h4>
+    <p>人类在关键节点介入，进行价值审核与最终决策。</p>
+  </div>
+</div>
+
+<h4>人类与AI的角色分工表</h4>
+
+<table>
+<tr><th>维度</th><th>人类</th><th>AI</th></tr>
+<tr><td><strong>意图</strong></td><td>✓</td><td></td></tr>
+<tr><td><strong>价值判断</strong></td><td>✓</td><td></td></tr>
+<tr><td><strong>方向选择</strong></td><td>✓</td><td></td></tr>
+<tr><td><strong>战术探索</strong></td><td></td><td>✓</td></tr>
+<tr><td><strong>计划生成</strong></td><td></td><td>✓</td></tr>
+<tr><td><strong>子任务执行</strong></td><td></td><td>✓</td></tr>
+<tr><td><strong>最终审核</strong></td><td>✓</td><td></td></tr>
+</table>
+
+<h4>演进趋势：规范驱动开发（SDD）</h4>
+
+<p>以意图为核心的分工正逐步演变为<strong>规范驱动开发</strong>：人类负责编写结构化的规范（目标、约束条件、上下文），Agent作为执行引擎，根据规范生成并交付代码。</p>
+
+<h3 id="part5-2">§05.2 透明与可解释</h3>
+
+<div class="tip">
+<strong>核心思想：</strong>"信任并非盲目，而是建立在理解的基础之上。"Agent不能仅提供一个结果，还必须提供"认知的审计日志"。
+</div>
+
+<h4>可解释性的三级标准</h4>
+
+<table>
+<tr><th>级别</th><th>解释对象</th><th>场景</th><th>示例</th></tr>
+<tr><td><strong>直觉级</strong></td><td>最终用户</td><td>C端产品</td><td>"我推荐这个方案，是因为它成本最低。"</td></tr>
+<tr><td><strong>概念级</strong></td><td>业务专家</td><td>辅助决策系统</td><td>"经过历史数据分析，模式A与当前情况的匹配度达73%。"</td></tr>
+<tr><td><strong>技术级</strong></td><td>开发者</td><td>Agent调试后台</td><td>"Based on CoT reasoning step 4, tool search_db returned..."</td></tr>
+</table>
+
+<h4>UI设计原则：透明度即交互</h4>
+
+<div class="compare">
+  <div class="compare-good">
+    ✅ 要：呈现动态信息<br>
+    "正在搜索文档……"<br>
+    "发现冲突……"<br>
+    "正在重新规划……"
+  </div>
+  <div class="compare-bad">
+    ❌ 不要：简单地显示"已完成"
+  </div>
+</div>
+
+<h3 id="part5-3">§05.3 人类保持主导权</h3>
+
+<div class="callout">
+<strong>核心思想：</strong>"无论AI多么强大，关键的'核按钮'必须始终掌握在人类手中。"
+</div>
+
+<h4>强制介入触发条件</h4>
+
+<p>Agent必须内置<strong>"自我怀疑机制"</strong>，遇到以下情形时必须强制挂起操作并请求人类介入：</p>
+
+<table>
+<tr><th>情形</th><th>具体条件</th></tr>
+<tr><td><strong>高风险操作</strong></td><td>• 涉及金额超过1000元<br>• 执行数据删除等不可逆操作</td></tr>
+<tr><td><strong>低置信度</strong></td><td>• 推理结果的置信度低于0.6</td></tr>
+<tr><td><strong>伦理敏感</strong></td><td>• 涉及隐私、偏见、歧视<br>• 处于法律边界模糊地带</td></tr>
+</table>
+
+<h4>主导权逻辑流</h4>
+
+<div class="flow">
+  <div class="flow-item">拟执行动作</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-item">风险评估</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-item">判断</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-item">执行/询问</div>
+</div>
+
+<h4>可逆性设计</h4>
+
+<p>理想情况下，Agent的所有操作都应具备<strong>可逆性</strong>。对于不可逆操作（如发送邮件），必须引入<strong>时间锁（Time Lock）</strong>机制——延迟10秒发送，为人类提供撤回的机会。</p>
+
+<h3 id="part5-4">§05.4 共同学习与成长</h3>
+
+<p>人机协作并非静态关系，而是一个<strong>双向的学习过程</strong>。</p>
+
+<h4>双向学习机制</h4>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content">
+    <h4>AI向人类学习</h4>
+    <p>• 通过RLHF（人类反馈强化学习）<br>
+    • 通过人类的修正和示范<br>
+    • 将隐性知识（Tacit Knowledge）转化为可操作的显性知识</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content">
+    <h4>人类向AI学习</h4>
+    <p>• AI的涌现行为启发人类突破思维定式<br>
+    • 如AlphaGo第37手的"神之一手"<br>
+    • 发现全新的问题解决路径</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content">
+    <h4>创造性的融合（最高境界）</h4>
+    <p>新的契约并非一次性签署即告终结，而是持续协商、动态演进的过程——不是合作的终点，而是共创的起点。</p>
+  </div>
+</div>
+
+<h4>新契约的本质</h4>
+
+<div class="tip">
+我们设定初始条件（Prompt），提供养分（Knowledge），适时修剪枝叶（Safety/Alignment），然后静待智能之果自然涌现。
+</div>
+
+<h3>第5章小结</h3>
+
+<p>人机协作的四大设计原则构成了新的契约框架：</p>
+
+<ol>
+<li><strong>互补而非替代：</strong>人类负责决策与价值判断，AI负责战术探索与执行</li>
+<li><strong>透明与可解释：</strong>信任建立在理解的基础上，Agent需提供认知的审计日志</li>
+<li><strong>人类保持主导权：</strong>关键"核按钮"始终掌握在人类手中</li>
+<li><strong>共同学习与成长：</strong>人机协作是双向学习、动态演进的过程</li>
+</ol>
+
+</div>
+
+<!-- ===== appendix.html ===== -->
+<div class="content">
+
+<h2 class="section-title page-break" id="appendix"><span class="num">§A</span> 21个核心设计模式速查</h2>
+<p class="section-en">21 Core Design Patterns Quick Reference</p>
+<p class="section-intro">下篇围绕六大主轴，构建从个体智能到社会协作的完整闭环。本节提供21个核心设计模式的速查表。</p>
+
+<h3>六大架构维度全景图</h3>
+
+<table>
+<tr><th>维度</th><th>模式名称</th><th>核心功能</th></tr>
+<tr><td rowspan="4"><strong>感知模式</strong><br>(第4章)</td><td>注意力聚焦模式</td><td>在信息过载中筛选关键信息</td></tr>
+<tr><td>多模态融合模式</td><td>整合文本、图像、音频等多源信息</td></tr>
+<tr><td>主动感知模式</td><td>Agent主动发起信息收集</td></tr>
+<tr><td>记忆模式</td><td>将感知信息持久化存储</td></tr>
+<tr><td rowspan="3"><strong>记忆模式</strong><br>(第5章)</td><td>分层记忆模式</td><td>短期记忆+长期记忆+工作记忆</td></tr>
+<tr><td>RAG模式</td><td>检索增强生成（向量数据库+相似度检索）</td></tr>
+<tr><td>情节记忆模式</td><td>按时间线组织经验</td></tr>
+<tr><td rowspan="4"><strong>推理模式</strong><br>(第6章)</td><td>思维链模式 (CoT)</td><td>将问题分解为连续推理步骤</td></tr>
+<tr><td>思维树模式 (ToT)</td><td>探索多条推理路径，评估后选择最优</td></tr>
+<tr><td>思维图模式 (GoT)</td><td>非线性推理，节点间多向连接</td></tr>
+<tr><td>类比推理模式</td><td>基于相似性迁移知识</td></tr>
+<tr><td rowspan="4"><strong>行动模式</strong><br>(第7章)</td><td>ReAct模式</td><td>Reasoning + Acting 交替进行</td></tr>
+<tr><td>规划-执行模式</td><td>先制定完整计划，再执行</td></tr>
+<tr><td>工具编排模式</td><td>灵活调用外部工具和API</td></tr>
+<tr><td>自适应策略模式</td><td>根据环境反馈动态调整策略</td></tr>
+<tr><td rowspan="3"><strong>反思模式</strong><br>(第8章)</td><td>自我修正模式</td><td>检测并纠正自身错误</td></tr>
+<tr><td>反思记忆模式</td><td>对过往决策进行复盘</td></tr>
+<tr><td>元学习模式</td><td>学习如何学习</td></tr>
+<tr><td rowspan="3"><strong>协作模式</strong><br>(第9章)</td><td>辩论模式</td><td>Agent间相互质疑、验证</td></tr>
+<tr><td>委托模式</td><td>任务分解与子Agent委派</td></tr>
+<tr><td>路由模式</td><td>根据任务类型分发给专业Agent</td></tr>
+</table>
+
+<h3>推理模式演进路线</h3>
+
+<div class="flow">
+  <div class="flow-item">简单问题</br>思维链(CoT)</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-item">复杂问题</br>思维树(ToT)</div>
+  <div class="flow-arrow">↔</div>
+  <div class="flow-item">关联分析</br>思维图(GoT)</div>
+</div>
+
+<h3>五大设计原则</h3>
+
+<table>
+<tr><th>原则</th><th>核心要义</th><th>反模式警示</th></tr>
+<tr><td><strong>目标优先</strong></td><td>一切从"要达成什么"出发，而非先考虑"能调用什么"</td><td>避免技术导向而非需求导向</td></tr>
+<tr><td><strong>上下文为王</strong></td><td>Prompt只是冰山一角，真正决定行为的是上下文工程与记忆治理</td><td>避免过度依赖单条Prompt</td></tr>
+<tr><td><strong>显式反馈</strong></td><td>将反馈、反思与改进视为核心能力，内建于系统设计之中</td><td>避免上线后才补救</td></tr>
+<tr><td><strong>渐进自治</strong></td><td>让系统在安全护栏内逐步提升自治能力</td><td>避免一次性赋予过多自主权</td></tr>
+<tr><td><strong>对齐与护栏</strong></td><td>将伦理、安全与合规要求深度嵌入结构与协议</td><td>绝不把风险外包给"运气"</td></tr>
+</table>
+
+<h3>软件工程范式的六大转变</h3>
+
+<table>
+<tr><th>维度</th><th>从</th><th>到</th></tr>
+<tr><td><strong>存在论</strong></td><td>机械</td><td>有机（生长、适应、协作的生命体）</td></tr>
+<tr><td><strong>控制论</strong></td><td>控制</td><td>引导（设定规则与激励机制）</td></tr>
+<tr><td><strong>质量观</strong></td><td>完美</td><td>适应（在不确定环境中持续生存与优化）</td></tr>
+<tr><td><strong>时间观</strong></td><td>静态</td><td>动态（始终处于变化、学习与成长中）</td></tr>
+<tr><td><strong>设计观</strong></td><td>设计</td><td>涌现（卓越特性在复杂交互中自发产生）</td></tr>
+<tr><td><strong>角色观</strong></td><td>建筑师</td><td>园丁（营造生态而非精确控制）</td></tr>
+</table>
+
+<h3>核心金句</h3>
+
+<ol>
+<li>"让人类负责决策，让AI负责选择，让系统负责执行。"</li>
+<li>"信任并非盲目，而是建立在理解的基础之上。"</li>
+<li>"无论AI多么强大，关键的'核按钮'必须始终掌握在人类手中。"</li>
+<li>"人机协作并非静态关系，而是一个双向的学习过程。"</li>
+<li>"Agent并非一个'函数'，而是一个'进程'——运行在一个while(alive)的无限循环之中。"</li>
+<li>"对Agent而言，上下文就是它的整个世界。"</li>
+<li>"身体并非心智的容器，而是心智的模具。"</li>
+<li>"Agent是孤岛，协作才是大陆。"</li>
+<li>"MCP让Agent能够'操作世界'，A2A让Agent能够'彼此协作'。"</li>
+<li>"从'建筑师'到'园丁'——不再试图拧紧每一颗螺丝，而是营造适宜的土壤。"</li>
+</ol>
+
+</div>
+
+<!-- ===== 99-backpage.html ===== -->
+<div class="back-page">
+  <div class="back-page-title">Agent设计模式橙皮书</div>
+  <div class="back-page-subtitle">从结构到智能，欢迎来到Agent时代</div>
+  <div class="back-page-qr-wrapper">
+    <img src=".\微信公众号二维码.jpg" alt="AI编程蒲公英 微信公众号" class="back-page-qr">
+    <div style="margin-top: 8px; font-size: 12px; color: #6B6B6B;">扫码关注 AI编程蒲公英</div>
+  </div>
+  <div class="back-page-info">
+    <strong>蒲公英 · AI进化论</strong><br>
+    系统掌握21个核心设计模式与6大架构维度<br>
+    从GoF到Agent时代的范式跃迁
+  </div>
+  <div class="back-page-social">
+    <a href="https://space.bilibili.com/3493114559858979/">B站：AI编程程序猿-蒲公英</a>
+    <span class="social-sep">·</span>
+    <span>公众号：AI编程蒲公英</span>
+  </div>
+  <div class="back-page-footer">
+    Created by 蒲公英 · v1.0 · 2026年<br>
+    本文档基于《Agent设计模式》黄佳著及Datawhale共学资料整理编写，内容仅供参考。
+  </div>
+</div>
+
+</body>
+</html>
